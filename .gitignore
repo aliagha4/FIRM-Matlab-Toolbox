@@ -4,6 +4,7 @@ output/Constructed_FIRM.mat
 *.asv
 *.pdf
 .DS_Store
+.dropbox
 All_state_classes/state.m
 All_stabilizer_classes/stabilizer_class.m
 All_simulator_classes/Simulator.m
