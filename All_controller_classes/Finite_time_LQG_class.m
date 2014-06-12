@@ -125,6 +125,8 @@ classdef Finite_time_LQG_class < LQG_interface
                 error(['FiniteTime LQG does not support ', obj.filter_mode, ' as a filter'])
              end
             
+             ali = 11;
+             
         end
         
         function next_Hb_particle = propagate_Hb_particle(obj,old_Hb_particle,k)

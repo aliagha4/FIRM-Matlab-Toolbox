@@ -87,8 +87,9 @@ classdef EmbeddedSimulator < SimulatorInterface
         function obj = refresh(obj)
             obj.robot = obj.robot.delete_plot();
             obj.robot = obj.robot.draw();
-            %             obj.belief = obj.belief.delete_plot();
-            %             obj.belief = obj.belief.draw();
+            obj.belief = obj.belief.delete_plot();
+            obj.belief = obj.belief.draw();
+            drawnow;
         end
         function obj = recordVideo(obj)
             if user_data_class.par.sim.video == 1

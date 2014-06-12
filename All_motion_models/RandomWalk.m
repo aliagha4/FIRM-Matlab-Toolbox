@@ -68,11 +68,11 @@ classdef RandomWalk < MotionModel_interface
             
             % noiselss motion  % for debug: if you uncomment the following
             % lines you have to get the same "x_p_copy" as the "x_p"
-            %             x_p_copy = zeros(stDim,kf+1);
-            %             x_p_copy(:,1) = X_initial;
-            %             for k = 1:kf
-            %                 x_p_copy(:,k+1) = RandomWalk.f_discrete(x_p_copy(:,k),u_p(:,k),zeros(RandomWalk.wDim,1));
-            %             end
+            % x_p_copy = zeros(state.dim,kf+1);
+            % x_p_copy(:,1) = X_initial;
+            % for k = 1:kf
+            %     x_p_copy(:,k+1) = MotionModel_class.f_discrete(x_p_copy(:,k),u_p(:,k),zeros(MotionModel_class.wDim,1));
+            % end
             
             nominal_traj.x = x_p;
             nominal_traj.u = u_p;

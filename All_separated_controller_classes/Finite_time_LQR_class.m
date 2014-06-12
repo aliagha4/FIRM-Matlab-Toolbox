@@ -28,6 +28,7 @@ classdef Finite_time_LQR_class < LQR_interface
             up = obj.lnr_pts(k).u; % planned up, which usually (or maybe always) must be zero in stationary LQG setting.
             
             u = up + dU;
+
         end
     end
     

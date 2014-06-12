@@ -114,12 +114,12 @@ classdef FIRM_edge_class
                 disp('Here, we have to delete the data inside the "edge_controller" object to free the memory.')
             end
         end
-        function [next_belief, lost, YesNo_unsuccessful, landed_node_ind, sim] = execute(obj,init_belief,sim)
+        function [nextBelief, lost, YesNo_unsuccessful, landed_node_ind, sim] = execute(obj,init_belief,sim)
             % This function executes the feedback plan for a single robot (belief). Also, in case the "replanning flag" is turned on by the user, then if it
             % deviates from the nominal path significantly, the function
             % returns "lost = 1".
             
-            current_belief = init_belief;
+            currentBelief = init_belief;
             xlabel(['Edge controller of edge ',num2str(obj.number),' starting from node ',num2str(obj.start_node.number),' is working']);
             % edge part
             draw_at_every_n_steps = user_data_class.par.sim.draw_at_every_n_steps;
@@ -128,14 +128,14 @@ classdef FIRM_edge_class
                 k
                 noiseFlag =1;
                 
-                [next_belief, reliable,sim] = obj.edge_controller.executeOneStep(init_belief,k,sim,noiseFlag);
+                [nextBelief, reliable, sim] = obj.edge_controller.executeOneStep(currentBelief,k,sim,noiseFlag);
                 if user_data_class.par.replanning == 1
                     lost = ~reliable;
                 else
                     lost = 0;
                 end
                 if mod(k,draw_at_every_n_steps)==0
-%                     sim = sim.setBelief(nextBelief);
+                    sim = sim.setBelief(nextBelief);
                     sim = sim.refresh();
                 end
                 if mod(k,draw_at_every_n_steps)==0
@@ -150,12 +150,12 @@ classdef FIRM_edge_class
                     return
                 end
                 % updating the belief
-                current_belief = next_belief;
+                currentBelief = nextBelief;
             end
             convergence_time = 0; % This is zero because, we right now do not consider GHb convergence as a pre-condition for FIRM node reaching. Otherwise, the following line has to be uncommented.
             % convergence_time = obj.HBelief_convergence_time - obj.kf;
-            [next_belief, lost, YesNo_unsuccessful, landed_node_ind, sim] = ...
-                obj.target_node_stabilizer.execute(current_belief,convergence_time, sim, 1);
+            [nextBelief, lost, YesNo_unsuccessful, landed_node_ind, sim] = ...
+                obj.target_node_stabilizer.execute(currentBelief,convergence_time, sim, 1);
         end
     end
     
