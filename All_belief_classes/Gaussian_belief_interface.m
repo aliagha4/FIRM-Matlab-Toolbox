@@ -15,11 +15,17 @@ classdef Gaussian_belief_interface
         function obj = Gaussian_belief_interface(arg1,arg2)
             % Class constructor that can take the belief object or a
             % (est_mean and est_cov) pair, as its input.
-            if nargin==0 % initialize the belief with empty values
-                obj.est_mean = state();
-            end
-            if nargin == 1
-                obj = arg1;
+            if nargin == 0
+                error('The state has to be provided to construct the belief!')
+            elseif nargin == 1
+                if (strcmpi(class(arg1),'Gaussian_belief_interface'))
+                    %arg1 is of type 'belief'
+                    obj = arg1;
+                else 
+                    %arg1 is of type 'state'
+                    obj.est_mean = arg1;
+                    obj.est_cov = [];
+                end
             elseif nargin == 2
                 obj.est_mean = arg1;
                 obj.est_cov = arg2;

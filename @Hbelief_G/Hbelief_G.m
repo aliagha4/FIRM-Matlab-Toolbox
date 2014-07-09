@@ -8,12 +8,12 @@ classdef Hbelief_G % Gaussian H-belief
     end
     
     methods
-        function obj = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest, P_of_joint)
+        function obj = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest, P_of_joint, stDim)
             if nargin>0
                 obj.Xg_mean = Xg_mean;
                 obj.Xest_mean_mean = Xest_MeanOfMean;
                 obj.Pest = Pest;
-                if ~all(size(P_of_joint)==[2*state.dim,2*state.dim])
+                if ~all(size(P_of_joint)==[2*stDim,2*stDim])
                     error('The dimension of joint distribution covariance is not correct.')
                 else
                     obj.P_of_joint = P_of_joint;

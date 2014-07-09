@@ -12,9 +12,10 @@ classdef Point_PRM_class < PRM_interface
     end
     
     methods
-        function obj = Point_PRM_class(~)
+        function obj = Point_PRM_class(stateSpace, mm)
             % See the superclass; The constructor of the superclass, i.e., "PRM_interface" is
             % automatically called.
+            obj = obj@PRM_interface(stateSpace, mm);
         end
         function obj = draw(obj)
             % This function draws the PRM graph. If no "plot properties"
@@ -60,10 +61,10 @@ classdef Point_PRM_class < PRM_interface
         function obj = request_nodes(obj)
             old_prop = obj.set_figure();
             title({'Please select PRM nodes'},'fontsize',14)
-            obj.nodes = state.empty; % class type initialization
+            obj.nodes = obj.stateSpace.empty; % class type initialization
             tmp_neighb_plot_handle = [];
             for i = 1:obj.max_number_of_nodes
-                new_node = state.sample_a_valid_state;
+                new_node = obj.stateSpace.sample_a_valid_state();
                 if isempty(new_node)
                     delete(tmp_neighb_plot_handle)
                     break
@@ -117,7 +118,7 @@ classdef Point_PRM_class < PRM_interface
             obj.num_stabilizers = obj.num_nodes;
         end
         function obj = add_edge(obj, start_node, end_node, start_node_ind, end_node_ind)
-            open_loop_traj = MotionModel_class.generate_VALID_open_loop_point2point_traj(start_node, end_node); % generates open-loop trajectories from "new_node" to j-th PRM node. If the "open_loop_traj" violates constraints (for example collides with obstacles) it returns empty matrix.
+            open_loop_traj = obj.mm.generate_VALID_open_loop_point2point_traj(start_node, end_node); % generates open-loop trajectories from "new_node" to j-th PRM node. If the "open_loop_traj" violates constraints (for example collides with obstacles) it returns empty matrix.
             constraint_violation = isempty(open_loop_traj); % this lines check if the "open_loop_traj" violates any constraints or not. For example it checks collision with obstacles.
             if ~constraint_violation
                 obj.edges_list = [obj.edges_list; [start_node_ind , end_node_ind] ];
@@ -203,7 +204,7 @@ classdef Point_PRM_class < PRM_interface
             
             for i = 1 : length(neighbors)
                 elem_wise_distance = abs(obj.nodes(current_node_ind).signed_element_wise_dist(obj.nodes(neighbors(i)))); % Never forget "abs" function
-                weighted_norm(i) = norm(elem_wise_distance .* state.sup_norm_weights , 2); % last argument tells that which norm you are using. Here for PRM we use 2-norm.
+                weighted_norm(i) = norm(elem_wise_distance .* obj.stateSpace.sup_norm_weights , 2); % last argument tells that which norm you are using. Here for PRM we use 2-norm.
             end
             [~,min_ind] = min(weighted_norm);
             nearest_node_ind = neighbors(min_ind);
@@ -217,7 +218,7 @@ classdef Point_PRM_class < PRM_interface
                 elem_wise_distance = abs(obj.nodes(i).signed_element_wise_dist(obj.nodes(j))); % Never forget "abs" function
                 % disp('the following line is only true in multi-robot')
                 % if ~all(elem_wise_distance), continue; end
-                weighted_norm = norm(elem_wise_distance .* state.sup_norm_weights , 2); % last argument tells that which norm you are using. Here for PRM we use 2-norm.
+                weighted_norm = norm(elem_wise_distance .* obj.stateSpace.sup_norm_weights , 2); % last argument tells that which norm you are using. Here for PRM we use 2-norm.
                 if weighted_norm < obj.par.neighboring_distance_threshold
                     neighbors = [neighbors,j]; %#ok<AGROW>
                 end
@@ -225,7 +226,7 @@ classdef Point_PRM_class < PRM_interface
         end
         function obj = draw_edge(obj,edge_number)
             traj_flag = 0; % this has to be fixed. This should be defined by user
-            tmp_handle = MotionModel_class.draw_nominal_traj(obj.edges(edge_number), traj_flag);
+            tmp_handle = obj.mm.draw_nominal_traj(obj.edges(edge_number), traj_flag);
             obj.edges_plot_handle = [obj.edges_plot_handle,tmp_handle];
         end
     end

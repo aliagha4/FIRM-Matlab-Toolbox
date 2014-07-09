@@ -38,9 +38,12 @@ par_new.sim.verboseFlag = 1; % (0: suppresses the inermediate code messages inte
 
 %=========== Motion Model Parameters
 if strcmpi(par_new.selected_motion_model,'Multi RandomWalk robots')
-    typeDef('multi_robot_positional_state' , 'state')
-    typeDef('multi_robot_positional_belief' , 'belief')
-    typeDef('RandomWalk' , 'MotionModel_class')
+    par_new.systemModel.stateString = 'multi_robot_positional_state';
+    par_new.systemModel.beliefString = 'multi_robot_positional_belief';
+    par_new.systemModel.mmString = 'RandomWalk';
+%     typeDef('multi_robot_positional_state' , 'state')
+%     typeDef('multi_robot_positional_belief' , 'belief')
+%     typeDef('RandomWalk' , 'MotionModel_class')
 elseif strcmpi(par_new.selected_motion_model,'Omni-directional three wheel robot')
     typeDef('planar_robot_XYTheta_state' , 'state')
     typeDef('planar_robot_XYTheta_belief' , 'belief')
@@ -97,8 +100,9 @@ elseif strcmpi(par_new.selected_observation_model,'Dynamical n-arm Manipulator')
     typeDef('Dyn_manipulator_wall_sensing_deadzone','ObservationModel_class');
 elseif strcmpi(par_new.selected_observation_model,'3D Landmark (range and bearing)')
     typeDef('Landmarks_3D_Range_bearing','ObservationModel_class');
-elseif strcmpi(par_new.selected_observation_model,'Full state information, additive Gaussian noise')    
-    typeDef('Full_state_additive_Gaussian','ObservationModel_class');
+elseif strcmpi(par_new.selected_observation_model,'Full state information, additive Gaussian noise')  
+    par_new.systemModel.omString = 'Full_state_additive_Gaussian';
+%     typeDef('Full_state_additive_Gaussian','ObservationModel_class');
 end
 % typeDef('Landmarks_3D_Range_bearing','ObservationModel_class');
 par_new.observation_model_parameters = gather_observation_model_parameters(old_par, par_new.observation_model_parameters, par_new.selected_observation_model);
@@ -106,8 +110,10 @@ par_new.observation_model_parameters = gather_observation_model_parameters(old_p
 
 %=========== Planning Problem (Solver) Parameters
 if strcmpi(par_new.planning_problem_param.solver, 'Stationary LQG-based FIRM')
-    typeDef('Point_PRM_class', 'PRM_class')
-    typeDef('Point_stabilizer_SLQG_class', 'stabilizer_class')
+    par_new.planning_problem_param.PRMString = 'Point_PRM_class';
+    par_new.planning_problem_param.stabilizerString = 'Point_stabilizer_SLQG_class';
+    %     typeDef('Point_PRM_class', 'PRM_class')
+%     typeDef('Point_stabilizer_SLQG_class', 'stabilizer_class')
 elseif strcmpi(par_new.planning_problem_param.solver, 'Periodic LQG-based FIRM')
     typeDef('Orbit_PRM_class', 'PRM_class')
     typeDef('Orbit_stabilizer_PLQG_class', 'stabilizer_class')

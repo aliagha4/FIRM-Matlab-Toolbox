@@ -10,6 +10,8 @@ classdef PRM_interface
         edges_matrix; % edges matrix. The (i,j)-th element is one if there exists an edge between nodes i and j. It is zero, otherwise.
         outgoing_edges;
         par; % PRM parameters entered by the user
+        stateSpace; %state space
+        mm; %motion model for edge construction
     end
     
     % note that in Matlab, the private properties are not inherited to the subclasses. So, there is no point in writing these properties here but to remind you to have these properties in the subclasses in a consistent way.
@@ -20,13 +22,15 @@ classdef PRM_interface
     %         text_handle;
     %     end
 
-    
     methods
-        function obj = PRM_interface(obj) %#ok<INUSD>
+        function obj = PRM_interface(stateSpace, mm) %#ok<INUSD>
             % the constructor; If an existing PRM is requested, it loads,
             % draws, and re-saves the PRM in the new output folder. And if
             % a new PRM is requested, it asks user to select the nodes and
             % then draws the PRM and saves it.
+            obj.stateSpace = stateSpace;
+            obj.mm = mm;
+
             if user_data_class.par.sim.interactive_PRM == 0
                 obj = obj.load();
                 obj = obj.overwrite_nodes();

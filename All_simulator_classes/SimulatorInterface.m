@@ -16,7 +16,7 @@ classdef SimulatorInterface
     methods (Abstract)
         
         % initialize : initializes the simulator 
-        obj = initialize(obj)
+        obj = initialize(obj, OM)
         % SetRobot : change robot parameters 
         obj = setRobot(obj)
         % GetRobot : get robot parameters

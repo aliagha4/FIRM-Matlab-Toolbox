@@ -11,15 +11,15 @@ classdef FIRM_graph_class < FIRM_graph_interface
             obj.num_stabilizers = obj.PRM.num_stabilizers;
             obj.num_edges = size(PRM_inp.edges_list,1); % number of local controllers
             
-            obj.Stabilizers = stabilizer_class.empty;
-            obj.Stabilizers(obj.num_stabilizers,1) = stabilizer_class; % Preallocate object array
+            obj.Stabilizers = feval([user_data_class.par.planning_problem_param.stabilizerString '.empty']);
+            obj.Stabilizers(obj.num_stabilizers,1) = feval(user_data_class.par.planning_problem_param.stabilizerString); % Preallocate object array
             
             obj.Nodes = FIRM_node_class.empty;
             obj.Nodes(obj.num_nodes,1) = FIRM_node_class; % Preallocate object array
             obj.Edges = FIRM_edge_class.empty;
             obj.Edges(obj.num_edges,1) = FIRM_edge_class; % Preallocate object array
         end
-        function obj = construct_all_stabilizers_and_FIRM_nodes(obj)
+        function obj = construct_all_stabilizers_and_FIRM_nodes(obj, team)
             % This function constructs stabilizers used in the FIRM framework and constructs reachable nodes under this stabilizers and assigns values to the "stabilizers" and "nodes" properties of the class.
             obj.num_nodes = obj.PRM.num_nodes;
             tic
@@ -27,12 +27,13 @@ classdef FIRM_graph_class < FIRM_graph_interface
             for jn = 1:obj.num_stabilizers % jn is the stabilizer number
                 disp(['Constructing belief node stabilizer ',num2str(jn),' out of total ',num2str(obj.num_stabilizers),' stabilizers'])
                 PRM_node = obj.PRM.nodes(jn);
-                obj.Stabilizers(jn) = stabilizer_class(PRM_node);  % constructing i-th stabilizer
+%                 obj.Stabilizers(jn) = stabilizer_class(PRM_node);  % constructing i-th stabilizer
+                obj.Stabilizers(jn) = feval(user_data_class.par.planning_problem_param.stabilizerString, PRM_node, class(team.ss), team.mm, team.om);
                 obj.Stabilizers(jn).stabilizer_number = jn;  % We need this for display purposes in the "stabilizer_class". However, we do not provide it as a constructor input, since it is not a real property of the class.
             end
             n = 0; % n represents the absolute number of nodes (Not associated with a single stabilizer, but among all nodes)
             for jn = 1:obj.num_stabilizers % jn is the stabilizer number (or belief node center number in this class)
-                obj.Stabilizers(jn) = obj.Stabilizers(jn).construct_reachable_FIRM_nodes();
+                obj.Stabilizers(jn) = obj.Stabilizers(jn).construct_reachable_FIRM_nodes(class(team.belief));
                 reachable_FIRM_nodes = obj.Stabilizers(jn).reachable_FIRM_nodes;
                 num_of_reachable_nodes = length(reachable_FIRM_nodes);
                 disp(['Constructing FIRM nodes ',num2str(n+1:n+num_of_reachable_nodes),' out of total ',num2str(obj.num_nodes),' nodes'])
@@ -84,7 +85,7 @@ classdef FIRM_graph_class < FIRM_graph_interface
             current_node_ind = start_node_ind;
             while current_node_ind ~= goal_node_ind
                 next_edge_ind = obj.feedback_pi(current_node_ind); % compute the next edge (next optimal local controller) on the graph using high level feedback "pi" on the graph.
-                [next_belief, lost, YesNo_unsuccessful, landed_node_ind] = obj.Edges(next_edge_ind).execute(current_belief,sim);
+                [next_belief, lost, YesNo_unsuccessful, landed_node_ind, sim] = obj.Edges(next_edge_ind).execute(current_belief,sim);
                 if YesNo_unsuccessful
                     disp('Ali: Execution is failed, as the robot either collided with an obstacle or ran out of time.')
                     break

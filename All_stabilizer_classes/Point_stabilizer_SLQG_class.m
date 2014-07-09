@@ -11,16 +11,16 @@ classdef Point_stabilizer_SLQG_class < Stabilizer_interface
     end
     
     methods
-        function obj = Point_stabilizer_SLQG_class(PRM_node_inp)
+        function obj = Point_stabilizer_SLQG_class(PRM_node_inp, ssClassString, mm, om)
             if nargin>0
                 obj.PRM_node = PRM_node_inp;
-                obj.controller = SLQG_class(PRM_node_inp.val); % Note that the node controller is an object of "LQG_stationary_class" NOT simple "LQG".
+                obj.controller = SLQG_class(PRM_node_inp.val, ssClassString, mm, om); % Note that the node controller is an object of "LQG_stationary_class" NOT simple "LQG".
                 obj.par = user_data_class.par.stabilizer_parameters;
             end
         end
-        function obj = construct_reachable_FIRM_nodes(obj)
+        function obj = construct_reachable_FIRM_nodes(obj, beliefClassString)
             stGHb = obj.controller.Stationary_Gaussian_Hb;
-            center_bel = belief(stGHb.Xest_mean_mean , stGHb.Pest);
+            center_bel = feval(beliefClassString, stGHb.Xest_mean_mean , stGHb.Pest);
             FIRM_node = FIRM_node_class( center_bel );
             FIRM_node.center_GHb = stGHb;
             obj.reachable_FIRM_nodes = FIRM_node;

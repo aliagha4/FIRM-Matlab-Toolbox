@@ -9,26 +9,27 @@ classdef SLQG_class < LQG_interface
         Big_lnr_sys;
         Stationary_belief;
         Stationary_Gaussian_Hb;
+        
+        ssClassString;
     end
     
     methods
-        function obj = SLQG_class(node)
+        function obj = SLQG_class(node, ssClassString, mm, om)
             % note that the node is not of the type "state". It is only a
             % vector.
             obj.lnr_pts.x = node;
-            obj.lnr_pts.u = zeros(MotionModel_class.ctDim,1);
-            obj.lnr_pts.w = zeros(MotionModel_class.wDim,1);
-            obj.lnr_pts.v = zeros(ObservationModel_class.obsNoiseDim,1);
-            obj.lnr_sys = Linear_system_class(obj.lnr_pts);
+            obj.lnr_pts.u = zeros(mm.ctDim,1);
+            obj.lnr_pts.w = zeros(mm.wDim,1);
+            obj.lnr_pts.v = zeros(om.obsNoiseDim,1);
+            obj.lnr_sys = Linear_system_class(obj.lnr_pts, mm, om);
             obj.estimator = SKF(obj.lnr_sys);
             obj.separated_controller = Stationary_LQR_class(obj.lnr_sys, obj.lnr_pts);
+            obj.ssClassString = ssClassString;
         end
         function Big_system_val = get.Big_lnr_sys(obj)
             % The property "Big_lnr_system" is computed only the
             % first time it is needed.
             if isempty(obj.Big_lnr_sys)
-                stDim = state.dim;
-                obsNoiseDim = ObservationModel_class.obsNoiseDim;
                 
                 An = obj.lnr_sys.A;
                 Bn = obj.lnr_sys.B;
@@ -39,6 +40,11 @@ classdef SLQG_class < LQG_interface
                 Rn = obj.lnr_sys.R;
                 Ln = obj.separated_controller.Feedback_gains;
                 Kn = obj.estimator.stationaryGain;
+                
+                stDim = size(An,1);
+                obsNoiseDim = size(Rn,1);%ObservationModel_class.obsNoiseDim;
+                
+                
                 % Following lines changes the "obj" because the class is a subclass of the "handle" class.
                 % Otherwise, we had to output the "obj".
                 obj.Big_lnr_sys.BigF = [An,-Bn*Ln;Kn*Hn*An,An-Bn*Ln-Kn*Hn*An];
@@ -236,9 +242,12 @@ classdef SLQG_class < LQG_interface
             %         error('Ali: Covariances are too unsymmetric!!')
             %     end
             Pest_ss = obj.estimator.stationaryCov;
-            Xg_mean = state(obj.lnr_pts.x);
+            %TODO: shayegan, fix this 3
+            Xg_mean = feval(obj.ssClassString, obj.lnr_pts.x, 3);
             Xest_MeanOfMean = Xg_mean; % in the stationary Hbelief, the mean of Xg and the mean of Xest_mean are equal.
-            stGHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest_ss,BigCov_better);
+            
+            stDim = size(obj.lnr_sys.A,1);            
+            stGHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest_ss, BigCov_better, stDim);
         end
     end
 end

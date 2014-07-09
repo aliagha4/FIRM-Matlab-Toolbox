@@ -18,25 +18,26 @@ classdef EmbeddedSimulator < SimulatorInterface
             %             obj.robot = Robot([0;0;0]);
         end
         % initialize : initializes the simulator
-        function obj = initialize(obj)
+        function obj = initialize(obj, team)
             old_prop = obj.set_figure(); %#ok<NASGU>
             % Following "if" statements cause the code to first construct the existing
             % parts of the environment, and then construct the parts that
             % the user is going to build.
             if user_data_class.par.observation_model_parameters.interactive_OM == 0
-                OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+%                 OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+                OM = team.om;
                 OM = OM.draw(); %#ok<NASGU>
             end
             if obj.par.intractive_obst == 0
                 obj.obstacle = obstacles_class; % The object "Obstacles" is never used. This line only cause the "Constant" properties of the "obstacles_class" class to be initialized.
                 obj.obstacle = obj.obstacle.draw();
             end
-            
             if obj.par.intractive_obst == 1
                 obj.obstacle = obstacles_class; % The object "Obstacles" is never used. This line only cause the "Constant" properties of the "obstacles_class" class to be initialized.
             end
             if user_data_class.par.observation_model_parameters.interactive_OM == 1
-                OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+%                 OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+                OM = feval(class(team.om));
                 OM.plot_handle = OM.draw();
             end
             
@@ -61,8 +62,8 @@ classdef EmbeddedSimulator < SimulatorInterface
                 camlight('right')
                 camzoom(obj.par.initialZoomRatio)
             end
-            obj.robot = state();
-            obj.belief = belief();
+            obj.robot = team.ss;
+            obj.belief = team.belief;
         end
         % SetRobot : change robot parameters
         function obj = setRobot(obj,robot)

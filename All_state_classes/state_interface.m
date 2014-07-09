@@ -1,12 +1,13 @@
 classdef state_interface
     % This class encapsulates the state of the system.
-    properties (Abstract, Constant)
-        dim; % state dimension
-    end
+%     properties (Abstract, Constant)
+%         dim; % state dimension
+%     end
     properties (Constant)
         sup_norm_weights = user_data_class.par.state_parameters.sup_norm_weights_nonNormalized / norm(user_data_class.par.state_parameters.sup_norm_weights_nonNormalized); % we normalize the weights here.
     end
     properties (Abstract)
+        dim; % state dimension
         val; % value of the state
         plot_handle; % handle for the "drawings" associated with the state
         text_handle; % handle for the "displayed text" associated with the state
@@ -14,17 +15,20 @@ classdef state_interface
     
     
     methods
-        function obj = state_interface(X) % constructor function
-            if nargin == 0
+        function obj = state_interface(varargin) % constructor function
+            if (nargin == 0 || isempty(varargin{1}))
                 obj.val = []; % if no X is inputted
-            elseif isa(X,'state')
-                obj = X;
-            elseif all(size(X) == [obj.dim,1])
-                obj.val = X;
-            elseif all(size(X) == [1,obj.dim])
-                obj.val = X';
             else
-                error('The state dimension is not correct')
+                X = varargin{1};
+                if isa(X,'state')
+                    obj = X;
+                elseif all(size(X,2) == 1)
+                    obj.val = X;
+                elseif all(size(X,1) == 1)
+                    obj.val = X';
+                else
+                    error('The state dimension is not correct')
+                end
             end
         end
         function obj = apply_differentiable_constraints(obj)
@@ -56,10 +60,8 @@ classdef state_interface
         neighb_plot_handle = draw_neighborhood(obj, scale)
         YesNo = is_constraint_violated(obj)
         old_limits = zoom_in(obj,zoom_ratio)
+        sampled_state = sample_a_valid_state(obj)
     end
     
-    methods (Abstract, Static)
-        sampled_state = sample_a_valid_state()
-    end
     
 end

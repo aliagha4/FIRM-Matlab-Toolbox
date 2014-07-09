@@ -1,9 +1,29 @@
 classdef multi_robot_positional_belief < Gaussian_belief_interface
     % This class encapsulates the Gaussian belief concept.
 
+    properties (Constant = true)
+       stateClassString = 'multi_robot_positional_state'; 
+    end
+    
+    properties 
+        num_robots
+    end
+    
     methods
         function obj = multi_robot_positional_belief(varargin)
-            obj = obj@Gaussian_belief_interface(varargin{:});
+           obj = obj@Gaussian_belief_interface(varargin{:});
+           if nargin == 1
+                if (strcmpi(class(varargin{1}),'Gaussian_belief_interface'))
+                    %arg1 is of type 'belief'
+                    obj.num_robots = varargin{1}.num_robots;
+                else
+                    %arg1 is of type 'state'
+                    obj.num_robots = varargin{1}.num_robots;
+                end
+           elseif nargin == 2
+               %arg1 is of type 'state'
+               obj.num_robots = varargin{1}.num_robots;
+           end
         end
         function obj = draw(obj, varargin)
             % The full list of properties for this function is:
@@ -32,7 +52,9 @@ classdef multi_robot_positional_belief < Gaussian_belief_interface
            if ~isempty(ellipse_spec)
                tmp=get(gca,'NextPlot'); hold on
                obj.ellipse_handle = [];
-               for j = 1:state.num_robots
+               
+               
+               for j = 1:obj.num_robots
                    tmp_h = plotUncertainEllip2D(obj.est_cov(2*j-1:2*j  , 2*j-1:2*j),obj.est_mean.val(2*j-1:2*j), ellipse_spec{j}, ellipse_width,ellipse_magnify);
                    obj.ellipse_handle = [obj.ellipse_handle , tmp_h];
                end
@@ -63,7 +85,7 @@ classdef multi_robot_positional_belief < Gaussian_belief_interface
            if ~isempty(ellipse_spec)
                 tmp=get(gca,'NextPlot'); hold on
                 obj.ellipse_handle = [];
-               for j = 1:state.num_robots
+               for j = 1:obj.num_robots
                    tmp_h = plotUncertainEllip2D(obj.est_cov(2*j-1:2*j  , 2*j-1:2*j),nominal_state.val(2*j-1:2*j),ellipse_spec{j}, ellipse_width);
                    obj.ellipse_handle = [obj.ellipse_handle , tmp_h];
                end

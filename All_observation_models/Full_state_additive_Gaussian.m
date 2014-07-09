@@ -1,42 +1,42 @@
 classdef Full_state_additive_Gaussian < ObservationModel_interface
     
-    properties (Constant)
-        tmp_prop = Full_state_additive_Gaussian.costant_property_constructor();  % I use this technique to initialize the costant properties in run-time. If I can find a better way to do it, I will update it, as it seems a little bit strange.
-        obsDim = state.dim;
-        obsNoiseDim = state.dim; % observation noise dimension. In some other observation models the noise dimension may be different from the observation dimension.
-        R = eye(state.dim)*0.0001; % observation noise covariance
-        zeroNoise = zeros(state.dim,1);
-    end
     properties
-       plot_handle;
+        obsDim;
+        obsNoiseDim; % observation noise dimension. In some other observation models the noise dimension may be different from the observation dimension.
+        R; % observation noise covariance
+        zeroNoise;
+        plot_handle;
     end
     
-    methods (Static = true)
-        function tmp_prop = costant_property_constructor()
-            tmp_prop = [];
+    methods
+        function obj = Full_state_additive_Gaussian(state)
+            obj.obsDim = state.dim;
+            obj.obsNoiseDim = state.dim; % observation noise dimension. In some other observation models the noise dimension may be different from the observation dimension.
+            obj.R = eye(state.dim)*0.0001; % observation noise covariance
+            obj.zeroNoise = zeros(state.dim,1);
         end
-        function handle_of_plot = draw()
+        function handle_of_plot = draw(obj)
             handle_of_plot = [];
         end
         function obj = delete_plot(obj)
         end
-        function z = h_func(x,v)
+        function z = h_func(obj,x,v)
             z = x+v;
         end
-        function H = dh_dx_func(x,v) %#ok<INUSD>
-            H = eye(Full_state_additive_Gaussian.obsDim);
+        function H = dh_dx_func(obj,x,v) %#ok<INUSD>
+            H = eye(obj.obsDim);
         end
-        function M = dh_dv_func(x,v) %#ok<INUSD>
-            M = eye(Full_state_additive_Gaussian.obsNoiseDim);
+        function M = dh_dv_func(obj,x,v) %#ok<INUSD>
+            M = eye(obj.obsNoiseDim);
         end
-        function V = generate_observation_noise(x) %#ok<INUSD>
-            noise=randn(Full_state_additive_Gaussian.obsDim,1);
-            V = noise.*diag((Full_state_additive_Gaussian.R).^(1/2));
+        function V = generate_observation_noise(obj,x) %#ok<INUSD>
+            noise=randn(obj.obsDim,1);
+            V = noise.*diag((obj.R).^(1/2));
         end
-        function R = noise_covariance(x) %#ok<INUSD>
-            R = Full_state_additive_Gaussian.R;
+        function R = noise_covariance(obj,x) %#ok<INUSD>
+            R = obj.R;
         end
-        function innov = compute_innovation(Xprd,Zg)
+        function innov = compute_innovation(obj,Xprd,Zg)
             innov = Zg - Xprd;
         end
     end

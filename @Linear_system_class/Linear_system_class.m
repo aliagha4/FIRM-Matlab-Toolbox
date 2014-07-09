@@ -15,39 +15,34 @@ classdef Linear_system_class < handle
     end
     
     methods (Static = true)
-        function [A,B,G,Q,H,M,R] = all_matrices(lnr_pts)
-            x = lnr_pts.x;
-            u = lnr_pts.u;
-            if ~isfield(lnr_pts,'w')
-                w = zeros(MotionModel_class.wDim,1);
-            else
-                w = lnr_pts.w;
-            end
-            if ~isfield(lnr_pts,'v')
-                v = zeros(ObservationModel_class.obsNoiseDim,1);
-            else
-                v = lnr_pts.v;
-            end
-            A = MotionModel_class.df_dx_func(x,u,w);
-            B = MotionModel_class.df_du_func(x,u,w);
-            G = MotionModel_class.df_dw_func(x,u,w);
-            Q = MotionModel_class.process_noise_cov(x,u);
-            H = ObservationModel_class.dh_dx_func(x,v);
-            M = ObservationModel_class.dh_dv_func(x,v);
-            R = ObservationModel_class.noise_covariance(x);
-        end
+       
     end
     
     methods
-        function obj = Linear_system_class(lnr_pts_inp)
+        function obj = Linear_system_class(lnr_pts_inp, mm, om)
             obj.lnr_pts = lnr_pts_inp;
+            
+            x = obj.lnr_pts.x;
+            u = obj.lnr_pts.u;
             if ~isfield(obj.lnr_pts,'w')
-                obj.lnr_pts.w = zeros(MotionModel_class.wDim,1);
+                obj.lnr_pts.w = zeros(mm.wDim,1);
+            else
+                w = obj.lnr_pts.w;
             end
             if ~isfield(obj.lnr_pts,'v')
-                obj.lnr_pts.v = zeros(ObservationModel_class.obsNoiseDim,1);
+                v = zeros(om.obsNoiseDim,1);
+            else
+                v = obj.lnr_pts.v;
             end
+            obj.A = mm.df_dx_func(x,u,w);
+            obj.B = mm.df_du_func(x,u,w);
+            obj.G = mm.df_dw_func(x,u,w);
+            obj.Q = mm.process_noise_cov(x,u);
+            obj.H = om.dh_dx_func(x,v);
+            obj.M = om.dh_dv_func(x,v);
+            obj.R = om.noise_covariance(x);
         end
+        
         function A_val = get.A(obj)
             if isempty(obj.A) % The first time this property is needed, it is gonna be computed here. But after that this property will not be recomputed again.
                 x = obj.lnr_pts.x;
