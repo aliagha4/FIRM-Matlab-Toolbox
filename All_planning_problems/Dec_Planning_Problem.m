@@ -16,8 +16,29 @@ classdef Dec_Planning_Problem
             obj.par = user_data_class.par.planning_problem_param;
             obj.sim = sim;
             obj.PRM = feval(obj.par.PRMString, team.ss, team.mm);
+            obj.PRM_node_to_extended_state()
             obj.team = team;
         end
+        
+        function obj = PRM_node_to_extended_state(obj)
+            idxNewNode = 1;
+            
+            for idxPrmNode = 1:length(obj.PRM.nodes)
+                %copy over the PRM node to node.val
+                newNodes(idxNewNode).val = obj.PRM.nodes(idxPrmNode);
+                %construct the fully centralized CG for PRM node
+                newNodes(idxNewNode).cg = cg_fully_central(obj.PRM.nodes(idxPrmNode).num_robots);
+                
+                %duplicate the node
+                newNodes(idxNewNode+1).val = obj.PRM.nodes(idxPrmNode);
+                %construct the fully decentralized CG for PRM node
+                newNodes(idxNewNode+1).cg = cg_fully_decentral(obj.PRM.nodes(idxPrmNode).num_robots);
+
+                idxNewNode = idxNewNode + 2;
+            end
+            obj.PRM.nodes = newNodes;
+        end
+        
         function obj = solve(obj)
             [loading_folder_path, ~, ~] = fileparts(user_data_class.par.LoadFileName); % This line returns the path of the folder from which we want to load the parameters.
             Constructed_FIRM_file = [loading_folder_path,filesep,'Constructed_FIRM.mat'];
@@ -29,7 +50,7 @@ classdef Dec_Planning_Problem
                     obj.FIRM_graph = PLQG_based_FIRM_graph_class(obj.PRM); % the input PRM is an object of PNPRM class
                 else 
                     obj.FIRM_graph = FIRM_graph_class(obj.PRM); % the input PRM is an object of PNPRM class
-                end                
+                end
                 obj.FIRM_graph = obj.FIRM_graph.construct_all_stabilizers_and_FIRM_nodes(obj.team); % Here, we construct the set of stabilizers used in FIRM and then we construct the reachable nodes under those stabilizers.
                 obj.FIRM_graph = obj.FIRM_graph.draw_all_nodes(); drawnow; % Draw the FIRM nodes
                 obj.FIRM_graph = obj.FIRM_graph.construct_all_FIRM_edges(); % Construct all the FIRM edges and associated transition costs and probabilities.
