@@ -123,8 +123,8 @@ classdef RandomWalk < MotionModel_interface
             end
         end
         function traj_plot_handle = draw_nominal_traj(obj,nominal_traj, varargin)
-            if obj.stDim ~= 6
-                error('This function is optimized for the three 2D robots');
+            if obj.stDim/obj.numRobots ~= 2
+                error('This function is optimized for 2D robots only');
             end
             for ir = 1:obj.numRobots
                 s_node_2D_loc = nominal_traj.x(2*ir-1:2*ir , 1);

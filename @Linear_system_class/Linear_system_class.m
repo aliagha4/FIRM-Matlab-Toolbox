@@ -19,28 +19,28 @@ classdef Linear_system_class < handle
     end
     
     methods
-        function obj = Linear_system_class(lnr_pts_inp, mm, om)
+        function obj = Linear_system_class(system_inp, lnr_pts_inp)
             obj.lnr_pts = lnr_pts_inp;
             
             x = obj.lnr_pts.x;
             u = obj.lnr_pts.u;
             if ~isfield(obj.lnr_pts,'w')
-                obj.lnr_pts.w = zeros(mm.wDim,1);
+                obj.lnr_pts.w = zeros(system_inp.mm.wDim,1);
             else
                 w = obj.lnr_pts.w;
             end
             if ~isfield(obj.lnr_pts,'v')
-                v = zeros(om.obsNoiseDim,1);
+                v = zeros(system_inp.om.obsNoiseDim,1);
             else
                 v = obj.lnr_pts.v;
             end
-            obj.A = mm.df_dx_func(x,u,w);
-            obj.B = mm.df_du_func(x,u,w);
-            obj.G = mm.df_dw_func(x,u,w);
-            obj.Q = mm.process_noise_cov(x,u);
-            obj.H = om.dh_dx_func(x,v);
-            obj.M = om.dh_dv_func(x,v);
-            obj.R = om.noise_covariance(x);
+            obj.A = system_inp.mm.df_dx_func(x,u,w);
+            obj.B = system_inp.mm.df_du_func(x,u,w);
+            obj.G = system_inp.mm.df_dw_func(x,u,w);
+            obj.Q = system_inp.mm.process_noise_cov(x,u);
+            obj.H = system_inp.om.dh_dx_func(x,v);
+            obj.M = system_inp.om.dh_dv_func(x,v);
+            obj.R = system_inp.om.noise_covariance(x);
         end
         
         function A_val = get.A(obj)
@@ -48,7 +48,7 @@ classdef Linear_system_class < handle
                 x = obj.lnr_pts.x;
                 u = obj.lnr_pts.u;
                 w = obj.lnr_pts.w;
-                A_val = MotionModel_class.df_dx_func(x,u,w);
+                A_val = system_inp.mm.df_dx_func(x,u,w);
                 obj.A = A_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 A_val = obj.A;
@@ -59,7 +59,7 @@ classdef Linear_system_class < handle
                 x = obj.lnr_pts.x;
                 u = obj.lnr_pts.u;
                 w = obj.lnr_pts.w;
-                B_val = MotionModel_class.df_du_func(x,u,w);
+                B_val = system_inp.mm.df_du_func(x,u,w);
                 obj.B = B_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 B_val = obj.B;
@@ -70,7 +70,7 @@ classdef Linear_system_class < handle
                 x = obj.lnr_pts.x;
                 u = obj.lnr_pts.u;
                 w = obj.lnr_pts.w;
-                G_val = MotionModel_class.df_dw_func(x,u,w);
+                G_val = system_inp.mm.df_dw_func(x,u,w);
                 obj.G = G_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 G_val = obj.G;
@@ -80,7 +80,7 @@ classdef Linear_system_class < handle
             if isempty(obj.Q) % The first time this property is needed, it is gonna be computed here. But after that this property will not be recomputed again.
                 x = obj.lnr_pts.x;
                 u = obj.lnr_pts.u;
-                Q_val = MotionModel_class.process_noise_cov(x,u);
+                Q_val = system_inp.mm.process_noise_cov(x,u);
                 obj.Q = Q_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 Q_val = obj.Q;
@@ -90,7 +90,7 @@ classdef Linear_system_class < handle
             if isempty(obj.H) % The first time this property is needed, it is gonna be computed here. But after that this property will not be recomputed again.
                 x = obj.lnr_pts.x;
                 v = obj.lnr_pts.v;
-                H_val = ObservationModel_class.dh_dx_func(x,v);
+                H_val = system_inp.om.dh_dx_func(x,v);
                 obj.H = H_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 H_val = obj.H;
@@ -100,7 +100,7 @@ classdef Linear_system_class < handle
             if isempty(obj.M) % The first time this property is needed, it is gonna be computed here. But after that this property will not be recomputed again.
                 x = obj.lnr_pts.x;
                 v = obj.lnr_pts.v;
-                M_val = ObservationModel_class.dh_dv_func(x,v);
+                M_val = system_inp.om.dh_dv_func(x,v);
                 obj.M = M_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 M_val = obj.M;
@@ -109,7 +109,7 @@ classdef Linear_system_class < handle
         function R_val = get.R(obj)
             if isempty(obj.R) % The first time this property is needed, it is gonna be computed here. But after that this property will not be recomputed again.
                 x = obj.lnr_pts.x;
-                R_val = ObservationModel_class.noise_covariance(x);
+                R_val = system_inp.om.noise_covariance(x);
                 obj.R = R_val; % Since this is a handle class, obj is changed in this line without listing it as an output argument.
             else
                 R_val = obj.R;

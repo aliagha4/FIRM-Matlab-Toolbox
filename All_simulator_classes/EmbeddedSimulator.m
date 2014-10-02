@@ -1,5 +1,6 @@
 classdef EmbeddedSimulator < SimulatorInterface
     properties
+        system
         sceneHierarchy %% an structure containing Scene Hierarchy (objects in the scene like floor , walls) and their children and properties
         robot
         par
@@ -18,13 +19,15 @@ classdef EmbeddedSimulator < SimulatorInterface
             %             obj.robot = Robot([0;0;0]);
         end
         % initialize : initializes the simulator
-        function obj = initialize(obj)
+        function obj = initialize(obj, system_inp)
             old_prop = obj.set_figure(); %#ok<NASGU>
             % Following "if" statements cause the code to first construct the existing
             % parts of the environment, and then construct the parts that
             % the user is going to build.
+            obj.system = system_inp;
             if user_data_class.par.observation_model_parameters.interactive_OM == 0
-                OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+                % OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+                OM = feval(class(system_inp.om),system_inp.ss); % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
                 OM = OM.draw(); %#ok<NASGU>
             end
             if obj.par.intractive_obst == 0
@@ -36,7 +39,7 @@ classdef EmbeddedSimulator < SimulatorInterface
             end
             if user_data_class.par.observation_model_parameters.interactive_OM == 1
                 % OM = ObservationModel_class; % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
-                OM = feval(class(team.om)); % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
+                OM = feval(class(system_inp.om),system_inp.ss); % The object OM is only created for "Constant" properties of the "ObservationModel_class" class to be initialized.
                 OM.plot_handle = OM.draw();
             end
             
@@ -61,20 +64,20 @@ classdef EmbeddedSimulator < SimulatorInterface
                 camlight('right')
                 camzoom(obj.par.initialZoomRatio)
             end
-            obj.robot = state();
-            obj.belief = belief();
+            obj.robot = system_inp.ss;
+            obj.belief = system_inp.belief;
         end
         % SetRobot : change robot parameters
         function obj = setRobot(obj,robot)
             
             if ~isfield(obj.robot,'plot_handle') || isempty(obj.robot.plot_handle) % if this is empty, it shows that the robot field is not initialized yet or we have deleted
                 % its handle that is we want to dreaw ir wirh a new handle
-                if ~isa(robot, 'state'), robot = state(robot); end
+                if ~isa(robot, class(obj.system.ss)), robot = feval(class(obj.system.ss), robot); end
                 
                 obj.robot = robot;
             else
                 % otherwose just update the value
-                if ~isa(robot, 'state'), newVal = state(robot); end
+                if ~isa(robot, class(obj.system.ss)), newVal = feval(class(obj.system.ss), robot); end
                 
                 obj.robot.val = newVal.val;
             end
@@ -98,7 +101,7 @@ classdef EmbeddedSimulator < SimulatorInterface
             end
         end
         function b = getBelief(obj)
-            b=obj.belief;
+            b = obj.belief;
         end
         function obj = setBelief(obj,b)
             
@@ -123,22 +126,22 @@ classdef EmbeddedSimulator < SimulatorInterface
                 noiseMode = 1; % by default we add noise
             end
             if noiseMode
-                w = MotionModel_class.generate_process_noise(obj.robot.val,u);
+                w = obj.system.mm.generate_process_noise(obj.robot.val,u);
             else
-                w = MotionModel_class.zeroNoise;
+                w = obj.system.mm.zeroNoise;
             end
-            obj.robot.val = MotionModel_class.f_discrete(obj.robot.val,u,w);
+            obj.robot.val = obj.system.mm.f_discrete(obj.robot.val,u,w);
         end
         
         function z = getObservation(obj, noiseMode)
             % generating observation noise
             if noiseMode
-                v = ObservationModel_class.generate_observation_noise(obj.robot.val);
+                v = obj.system.om.generate_observation_noise(obj.robot.val);
             else
-                v = ObservationModel_class.zeroNoise;
+                v = obj.system.om.zeroNoise;
             end
             % constructing ground truth observation
-            z = ObservationModel_class.h_func(obj.robot.val,v);
+            z = obj.system.om.h_func(obj.robot.val,v);
         end
         function isCollided = checkCollision(obj)
             isCollided = 0;

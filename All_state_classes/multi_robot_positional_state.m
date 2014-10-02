@@ -14,13 +14,9 @@ classdef multi_robot_positional_state < state_interface
     methods
         function obj = multi_robot_positional_state(varargin) % Note that the format (spacing and words) of this function must remain the same (as it is used in the typeDef function)
             obj = obj@state_interface(varargin{:});
-            if (nargin == 2)
-                obj.num_robots = varargin{2};
-                obj.dim =  2*varargin{2};
-            else
-                obj.num_robots = NaN;
-                obj.dim =  NaN;
-            end
+            num_robots_user = user_data_class.par.state_parameters.num_robots;
+            obj.num_robots = num_robots_user;
+            obj.dim =  2*num_robots_user;
         end
         function signed_dist_vector = signed_element_wise_dist(obj,x2) % this function returns the "Signed element-wise distnace" between two states x1 and x2
             x1 = obj.val; % retrieve the value of the state vector

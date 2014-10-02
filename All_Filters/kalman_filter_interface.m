@@ -4,7 +4,7 @@ classdef kalman_filter_interface < filter_interface
         obj = estimate(obj, varargin)
     end
     methods
-        function b_prd = predict(obj, b, U, lnr_sys)
+        function b_prd = predict(obj, b, U, lnr_sys, system)
             % lnr_sys is the linear or linearized system, Kalman filter is
             % designed for.
             
@@ -18,8 +18,8 @@ classdef kalman_filter_interface < filter_interface
             Xest_old = b.est_mean.val;
             Pest_old = b.est_cov;
             
-            zerow = MotionModel_class.zeroNoise;
-            Xprd = MotionModel_class.f_discrete(Xest_old,U,zerow);
+            zerow = system.mm.zeroNoise;
+            Xprd = system.mm.f_discrete(Xest_old,U,zerow);
             
             % I removed following display, because it comes up there too
             % many times!
@@ -31,9 +31,11 @@ classdef kalman_filter_interface < filter_interface
             %holds for state error NOT the state itself.
             Pprd = A*Pest_old*A'+G*Q*G';
             
-            b_prd = belief(state(Xprd),Pprd);
+            Xprd_state = feval(class(system.ss), Xprd);
+            
+            b_prd = belief(Xprd_state, Pprd);
         end
-        function b = update(obj, b_prd, Zg, lnr_sys)
+        function b = update(obj, b_prd, Zg, lnr_sys, system)
             % lnr_sys is the linear or linearized system, Kalman filter is
             % designed for.
             H = lnr_sys.H;
@@ -44,10 +46,13 @@ classdef kalman_filter_interface < filter_interface
             KG = (Pprd*H')/(H*Pprd*H'+R); %KG is the "Kalman Gain"
             
             Xprd = b_prd.est_mean.val;
-            innov = ObservationModel_class.compute_innovation(Xprd,Zg);
+            innov = system.om.compute_innovation(Xprd,Zg);
             Xest_next = Xprd+KG*innov;
             Pest_next = Pprd-KG*H*Pprd;
-            b = belief(state(Xest_next),Pest_next);
+            
+            Xnext_state = feval(class(system.ss), Xest_next);
+            b = feval(class(system.belief),Xnext_state,Pest_next);
+            
             bout = b.apply_differentiable_constraints(); % e.g., quaternion norm has to be one
             b=bout;
         end

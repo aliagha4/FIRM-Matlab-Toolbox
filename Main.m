@@ -11,12 +11,21 @@ if user_data_class.par.Cancel_Run == 1
     break
 end
 
+% The following lines should be read from USER_INPUT asap.
+state_agent = 'multi_robot_positional_state';
+mm_agent = 'RandomWalk';
+om_agent = 'Full_state_additive_Gaussian';
+belief_agent = 'multi_robot_positional_belief';
+
+agent = agent_class(nan, state_agent, mm_agent, om_agent, belief_agent);
+
 % instantiate the simulator
-sim = Simulator();
-sim = sim.initialize();
+simulator = 'EmbeddedSimulator';
+sim = feval(simulator);
+sim = sim.initialize(agent);
 
 % This is where you should write your specific planning problem
-prob_inst = Planning_Problem(sim);
+prob_inst = Planning_Problem(sim,agent);
 prob_inst = prob_inst.solve();
 
 % Close the simulator

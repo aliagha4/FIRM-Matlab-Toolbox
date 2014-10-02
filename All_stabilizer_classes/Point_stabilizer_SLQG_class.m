@@ -4,6 +4,7 @@ classdef Point_stabilizer_SLQG_class < Stabilizer_interface
     % (SLQG) controllers.
     
     properties (Access = private)
+        system;
         controller; % the controller utilizerd to stabilize the belief
         PRM_node; % underlying PRM node
         PRM_node_number; % PRM node number.
@@ -11,16 +12,18 @@ classdef Point_stabilizer_SLQG_class < Stabilizer_interface
     end
     
     methods
-        function obj = Point_stabilizer_SLQG_class(PRM_node_inp, ssClassString, mm, om)
+        function obj = Point_stabilizer_SLQG_class(PRM_node_inp, system_inp)
             if nargin>0
                 obj.PRM_node = PRM_node_inp;
-                obj.controller = SLQG_class(PRM_node_inp.val, ssClassString, mm, om); % Note that the node controller is an object of "LQG_stationary_class" NOT simple "LQG".
+                obj.system = system_inp;
+                obj.controller = SLQG_class(PRM_node_inp.val, system_inp); % Note that the node controller is an object of "LQG_stationary_class" NOT simple "LQG".
                 obj.par = user_data_class.par.stabilizer_parameters;
             end
         end
-        function obj = construct_reachable_FIRM_nodes(obj, beliefClassString)
+        function obj = construct_reachable_FIRM_nodes(obj)
             stGHb = obj.controller.Stationary_Gaussian_Hb;
-            center_bel = feval(beliefClassString, stGHb.Xest_mean_mean , stGHb.Pest);
+            belief_class_name = class(obj.system.belief);
+            center_bel = feval(belief_class_name , stGHb.Xest_mean_mean , stGHb.Pest);
             FIRM_node = FIRM_node_class( center_bel );
             FIRM_node.center_GHb = stGHb;
             obj.reachable_FIRM_nodes = FIRM_node;

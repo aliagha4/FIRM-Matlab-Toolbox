@@ -2,7 +2,7 @@ classdef agent_class
     % This class encapsulates the "agent" concept in FIRM
     % (Feedback-controller-based Information-state RoadMap).
     properties
-        id; %agent ID (unique to each agent)
+        id; %agent ID (unique to each agent -- only needed if dealing with a multi-robot problem)
         mm; %motion model
         om; %observation model
         belief; %current state

@@ -2,14 +2,14 @@ classdef LKF < kalman_filter_interface
 
     methods(Static = true)
 
-        function b_next = estimate(b,U,Zg,lnr_sys_for_prd,lnr_sys_for_update)
+        function b_next = estimate(b,U,Zg,lnr_sys_for_prd,lnr_sys_for_update, system)
             if nargin < 5
                 error('Ali: The linearized systems has to be provided for LKF.')
             end
-            b_prd = LKF.predict(b,U,lnr_sys_for_prd);
-            b_next = LKF.update(b_prd,Zg,lnr_sys_for_update);
+            b_prd = LKF.predict(b,U,lnr_sys_for_prd, system);
+            b_next = LKF.update(b_prd,Zg,lnr_sys_for_update, system);
         end
-        function b_prd = predict(b,U,lnr_sys)
+        function b_prd = predict(b,U,lnr_sys, system)
             
             % lnr_sys is the linear or linearized system, Kalman filter is
             
@@ -30,9 +30,9 @@ classdef LKF < kalman_filter_interface
             
             Pest_old = b.est_cov;
 
-            zerow = zeros(MotionModel_class.wDim,1);
+            zerow = zeros(system.mm.wDim,1);
             
-            Xprd = MotionModel_class.f_discrete(Xest_old,U,zerow);
+            Xprd = system.mm.f_discrete(Xest_old,U,zerow);
             
            
             % I removed following display, because it comes up there too
@@ -50,11 +50,13 @@ classdef LKF < kalman_filter_interface
             
             Pprd = A*Pest_old*A'+G*Q*G';
 
-            b_prd = belief(state(Xprd),Pprd);
+            Xprd_state = feval(class(system.ss), Xprd);
+            
+            b_prd = feval(class(system.belief), Xprd_state, Pprd);
             
         end
         
-        function b = update(b_prd,Zg,lnr_sys)
+        function b = update(b_prd,Zg,lnr_sys, system)
             
             % lnr_sys is the linear or linearized system, Kalman filter is
             
@@ -74,17 +76,19 @@ classdef LKF < kalman_filter_interface
             
             Xprd = b_prd.est_mean.val;
             
-            innov = ObservationModel_class.compute_innovation(Xprd,Zg);
+            innov = system.om.compute_innovation(Xprd,Zg);
             
             Xest_next = Xprd+KG*innov;
             
             Pest_next = Pprd-KG*H*Pprd;
             
-            b = belief(state(Xest_next),Pest_next);
+            Xnext_state = feval(class(system.ss), Xest_next);
+            
+            b = feval(class(system.belief),Xnext_state,Pest_next);
             
             bout = b.apply_differentiable_constraints(); % e.g., quaternion norm has to be one
             
-            b=bout;
+            b = bout;
             
         end
         

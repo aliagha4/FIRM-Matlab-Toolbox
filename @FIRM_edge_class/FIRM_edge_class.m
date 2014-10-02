@@ -2,6 +2,7 @@ classdef FIRM_edge_class
     % FIRM_edge_class encapsulates the properties and methods associated with defining FIRM edges.
     %test
     properties
+        system;
         start_node; % starting node of the edge. Note that we can only have one "start_node".
         possible_end_node_indices;  % The indices of possible target nodes of the edge. Note that we can have multiple "end_nodes" since we deal with stochastic edges; that is why the property name is NOT "end_node".
         target_node_stabilizer; % The object, which stabilize the belief to one of the "possible_end_nodes".
@@ -25,15 +26,16 @@ classdef FIRM_edge_class
     end
     
     methods
-        function obj = FIRM_edge_class(start_node_inp  ,  possible_end_node_indices_inp  ,  target_node_stabilizer_inp  ,  edge_number_inp  ,  nominal_PRM_edge_traj)
+        function obj = FIRM_edge_class(system_inp, start_node_inp  ,  possible_end_node_indices_inp  ,  target_node_stabilizer_inp  ,  edge_number_inp  ,  nominal_PRM_edge_traj)
             if nargin>0
+                obj.system = system_inp;
                 obj.start_node = start_node_inp;
                 obj.target_node_stabilizer = target_node_stabilizer_inp;
                 obj.number = edge_number_inp;
                 obj.nominal_trajectory = nominal_PRM_edge_traj;
                 obj.possible_end_node_indices =possible_end_node_indices_inp;
                 % obj.edge_controller = target_node_stabilizer_inp.controller; % If this line is uncommented, it means we assume the edge controller is the same as the stationary_LQG designed for end_node.
-                obj.edge_controller = Finite_time_LQG_class(obj.nominal_trajectory,'LKF');
+                obj.edge_controller = Finite_time_LQG_class(system_inp, obj.nominal_trajectory,'LKF');
                 obj.kf = obj.edge_controller.kf;
             end
         end
@@ -44,13 +46,13 @@ classdef FIRM_edge_class
             Xest_MeanOfMean = obj.start_node.center_b.est_mean;
             Xg_mean = Xest_MeanOfMean;
             Pest = obj.start_node.center_b.est_cov;
-            stdim = state.dim;
+            stdim = obj.system.ss.dim;
             P_of_joint = [Pest , zeros(stdim,stdim)  ;  zeros(stdim,stdim) , eps*eye(stdim) ];
             
             if max(max(abs(Pest - Pest')))<1e-8,  Pest = (Pest+Pest')/2; else error('Pest is too unsymmetric'); end
             if max(max(abs(P_of_joint - P_of_joint')))<1e-8,  P_of_joint = (P_of_joint+P_of_joint')/2; else error('P_of_joint is too unsymmetric'); end
             
-            initial_GHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest, P_of_joint);
+            initial_GHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest, P_of_joint, obj.system);
             
             initial_PHb = initial_GHb.HbeliefG_to_HbeliefP(user_data_class.par.par_n);
             %              initial_PHb = obj.start_node.sample_stationary_GHb();

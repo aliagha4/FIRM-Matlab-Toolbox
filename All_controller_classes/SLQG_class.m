@@ -1,6 +1,8 @@
 classdef SLQG_class < LQG_interface
     %   SLQG_class encapsulates the Stationary Linear Quadratic Gaussian Controller
     properties
+        system;
+        
         estimator
         separated_controller
         lnr_pts;
@@ -9,22 +11,20 @@ classdef SLQG_class < LQG_interface
         Big_lnr_sys;
         Stationary_belief;
         Stationary_Gaussian_Hb;
-        
-        ssClassString;
     end
     
     methods
-        function obj = SLQG_class(node, ssClassString, mm, om)
+        function obj = SLQG_class(node, system_inp)
             % note that the node is not of the type "state". It is only a
             % vector.
+            obj.system = system_inp;
             obj.lnr_pts.x = node;
-            obj.lnr_pts.u = zeros(mm.ctDim,1);
-            obj.lnr_pts.w = zeros(mm.wDim,1);
-            obj.lnr_pts.v = zeros(om.obsNoiseDim,1);
-            obj.lnr_sys = Linear_system_class(obj.lnr_pts, mm, om);
+            obj.lnr_pts.u = zeros(system_inp.mm.ctDim,1);
+            obj.lnr_pts.w = zeros(system_inp.mm.wDim,1);
+            obj.lnr_pts.v = zeros(system_inp.om.obsNoiseDim,1);
+            obj.lnr_sys = Linear_system_class(obj.system, obj.lnr_pts);
             obj.estimator = SKF(obj.lnr_sys);
             obj.separated_controller = Stationary_LQR_class(obj.lnr_sys, obj.lnr_pts);
-            obj.ssClassString = ssClassString;
         end
         function Big_system_val = get.Big_lnr_sys(obj)
             % The property "Big_lnr_system" is computed only the
@@ -87,8 +87,8 @@ classdef SLQG_class < LQG_interface
             % output "reliable" is 1 if the current estimate is inside the
             % valid linearization region of LQG. It is 0, otherwise.
             if exist('noise_mode','var') && strcmpi(noise_mode,'No-noise')
-                w = MotionModel_class.zeroNoise;
-                Vg = ObservationModel_class.zeroNoise;
+                w = obj.system.mm.zeroNoise;
+                Vg = obj.system.om.zeroNoise;
             end
             
             Xg = old_Hstate.Xg;
@@ -100,19 +100,19 @@ classdef SLQG_class < LQG_interface
 
             % generating process noises
             if ~exist('noise_mode','var')
-                w = MotionModel_class.generate_process_noise(Xg.val,u);
+                w = obj.system.mm.generate_process_noise(Xg.val,u);
             end
             
             % True state propagation
-            next_Xg_val = MotionModel_class.f_discrete(Xg.val,u,w);
+            next_Xg_val = obj.system.mm.f_discrete(Xg.val,u,w);
             
             % generating observation noise
             if ~exist('noise_mode','var')
-                Vg = ObservationModel_class.generate_observation_noise(next_Xg_val);
+                Vg = obj.system.om.generate_observation_noise(next_Xg_val);
             end
             
             % constructing ground truth observation
-            Zg = ObservationModel_class.h_func(next_Xg_val,Vg);
+            Zg = obj.system.om.h_func(next_Xg_val,Vg);
             
             % Since "StationaryKF_estimate" leads to unsymmetric estimation
             % covariances, we use the LKF instead.
@@ -120,9 +120,11 @@ classdef SLQG_class < LQG_interface
             % Note that to use LKF in "Stationary_LQG" the linear system
             % used for "prediction" is the same as the linear system used
             % for "update".
-            b_next = obj.estimator.estimate(b,u,Zg,obj.lnr_sys,obj.lnr_sys);
+            b_next = obj.estimator.estimate(b,u,Zg,obj.lnr_sys,obj.lnr_sys, obj.system);
             
-            next_Hstate = Hstate(state(next_Xg_val),b_next);
+            next_Xg_val_state = feval(class(obj.system.ss), next_Xg_val);
+            
+            next_Hstate = Hstate(next_Xg_val_state, b_next);
         end
         function [nextBelief, reliable,sim] = executeOneStep(obj,oldBelief,sim,noiseFlag)
             % propagates the system and belief using Stationary Kalman Filter and
@@ -143,7 +145,7 @@ classdef SLQG_class < LQG_interface
             % linear system to the estimation procedure, becuase the linear system
             % used for "prediction" is the same as the linear system used
             % for "update".
-            nextBelief = obj.estimator.estimate(oldBelief, u, z, obj.lnr_sys, obj.lnr_sys);
+            nextBelief = obj.estimator.estimate(oldBelief, u, z, obj.lnr_sys, obj.lnr_sys, obj.system);
 
         end
         function nextHb = propagateHyperBelief(obj,oldHb)
@@ -175,7 +177,7 @@ classdef SLQG_class < LQG_interface
             Pest = old_Hb_G.Pest;
             nbar = [obj.lnr_pts.x;obj.lnr_pts.x];
             
-            stDim = MotionModel_class.stDim;
+            stDim = obj.system.ss.dim;
             A = obj.lnr_sys.A;
             G = obj.lnr_sys.G;
             Q = obj.lnr_sys.Q;
@@ -187,8 +189,10 @@ classdef SLQG_class < LQG_interface
             BigQ = obj.Big_lnr_sys.BigQ;
             
             BigX = nbar + BigF*(BigX - nbar);
-            XgMean_next = state(BigX(1:stDim));
-            Xest_mean_of_mean_next = state(BigX(stDim+1:2*stDim));
+            XgMean_next = feval(class(obj.system.ss), BigX(1:stDim));
+            
+            Xest_mean_of_mean_next = feval(class(obj.system.ss), BigX(stDim+1:2*stDim));
+            
             Pprd_next = A*Pest*A'+G*Q*G';
             % Note that if we use "stationary_KF" in the node controller,
             % the Kalman gain is not computed based on the current
@@ -200,7 +204,7 @@ classdef SLQG_class < LQG_interface
             Pest_next = Pprd_next-Pprd_next*H'*inv(H*Pprd_next*H'+R)*H*Pprd_next; %#ok<MINV> % we use Joseph form to ensure the positive definitness of estimation covariance.
             BigCov_next = BigF*BigCov*BigF' + BigG*BigQ*BigG';
             
-            next_Hb_Gaussian = Hbelief_G(XgMean_next, Xest_mean_of_mean_next, Pest_next, BigCov_next);
+            next_Hb_Gaussian = Hbelief_G(XgMean_next, Xest_mean_of_mean_next, Pest_next, BigCov_next, obj.system);
             
         end
     end
@@ -243,11 +247,14 @@ classdef SLQG_class < LQG_interface
             %     end
             Pest_ss = obj.estimator.stationaryCov;
             %TODO: shayegan, fix this 3
-            Xg_mean = feval(obj.ssClassString, obj.lnr_pts.x, 3);
+            
+            
+            state_class_name = class(obj.system.ss);
+            
+            Xg_mean = feval(state_class_name, obj.lnr_pts.x);
             Xest_MeanOfMean = Xg_mean; % in the stationary Hbelief, the mean of Xg and the mean of Xest_mean are equal.
             
-            stDim = size(obj.lnr_sys.A,1);            
-            stGHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest_ss, BigCov_better, stDim);
+            stGHb = Hbelief_G(Xg_mean, Xest_MeanOfMean, Pest_ss, BigCov_better, obj.system);
         end
     end
 end

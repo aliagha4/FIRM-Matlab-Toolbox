@@ -131,8 +131,8 @@ randn('state',seed); %#ok<RAND>
 par_new.seed = seed;
 
 %=========== FIRM Node Parameters
-mean_neighb_magnifying_coeff = 0; % this coefficient enlarges the mean neighborhood in FIRM node definition, which leads to faster stop and convergence times, if it is greater than 1.
-cov_neighb_magnifying_coeff = 0; % this coefficient enlarges the covariance neighborhood in FIRM node definition, which leads to faster stop and convergence times, if it is greater than 1.
+mean_neighb_magnifying_coeff = 10; % this coefficient enlarges the mean neighborhood in FIRM node definition, which leads to faster stop and convergence times, if it is greater than 1.
+cov_neighb_magnifying_coeff = 10; % this coefficient enlarges the covariance neighborhood in FIRM node definition, which leads to faster stop and convergence times, if it is greater than 1.
 if strcmpi(par_new.selected_motion_model,'Multi RandomWalk robots')
     n = par_new.state_parameters.num_robots;
     tmp_vector = repmat( [0.08 ; 0.08 ] , n , 1);
@@ -188,7 +188,7 @@ par_new.stabilizer_parameters.max_stopping_time = 50;
 par_new.stabilizer_parameters.draw_cov_centered_on_nominal = 0;
 
 %=========== MonteCarlo Simulation
-par_new.par_n = 2; % number of particles
+par_new.par_n = 20; % number of particles
 par_new.cost_gain = 10;
 
 %=========== (LQR design) Node and Edge controller
@@ -297,7 +297,7 @@ elseif strcmpi(selected_motion_model,'Multi Omni-directional robots')
     P_rootsqaure_Wg_diags_team = repmat( [0.2 ; 0.2 ; 4*pi/180]*2, n ,1 ); % this is just a vector
     motion_model_parameters.P_Wg_team = diag(P_rootsqaure_Wg_diags_team.^2);
 elseif strcmpi(selected_motion_model,'Multi RandomWalk robots')
-    n = 3;
+    n = 1;
     state_parameters.num_robots=n;
     state_parameters.stateDim = 2*n;
     state_parameters.sup_norm_weights_nonNormalized = repmat(1./[1 ; 1 ] , n , 1); % You can think of the right-most vector (in the denominator) as the ractangular neighborhood used in finding neighbor nodes in constructing PRM graph. Note that this must be a column vector.
@@ -370,6 +370,6 @@ function observation_model_parameters_new = gather_observation_model_parameters(
 observation_model_parameters_old = old_par.observation_model_parameters;  % Here, we load the "old motion model parameters", so that the old information that we do not change, remains unaffected.
 observation_model_parameters_new = observation_model_parameters_old; % This line is written only to increase the readability of the code.
 observation_model_parameters_new.interactive_OM = observation_model_parameters_from_GUI.interactive_OM; % This line is needed since the user may overwrite the "manual_landmark" property through GUI
-observation_model_parameters_new.eta=[0.2100 , 0.2100]/2;
-observation_model_parameters_new.sigma_b=[0.2 , 0*pi/180]/2;
+observation_model_parameters_new.eta=[0.2100 , 0.2100];
+observation_model_parameters_new.sigma_b=[0.2 , 0*pi/180];
 end

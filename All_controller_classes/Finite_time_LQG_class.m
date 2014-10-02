@@ -6,6 +6,7 @@ classdef Finite_time_LQG_class < LQG_interface
     % "erase_from_memory" function.
     
     properties
+        system
         estimator
         separated_controller
         lnr_pts;
@@ -16,19 +17,20 @@ classdef Finite_time_LQG_class < LQG_interface
     end
     
     methods
-        function obj = Finite_time_LQG_class(nominal_trajectory, filter_mode_inp)
-            if nargin < 2, filter_mode_inp = 'LKF'; end  % the default filter in Finite_time_LQG is LKF (linearized Kalman filter)
+        function obj = Finite_time_LQG_class(system_inp, nominal_trajectory, filter_mode_inp)
+            if nargin < 3, filter_mode_inp = 'LKF'; end  % the default filter in Finite_time_LQG is LKF (linearized Kalman filter)
             if nargin > 0
+                obj.system = system_inp;
                 obj.filter_mode = filter_mode_inp;
                 obj.kf = size(nominal_trajectory.x , 2)-1;
                 
                 x_p = nominal_trajectory.x;
                 u_p = nominal_trajectory.u;
                 if size(u_p,2)<obj.kf+1 
-                    u_p = [u_p,nan(MotionModel_class.ctDim,1)]; 
+                    u_p = [u_p,nan(system_inp.mm.ctDim,1)]; 
                 end
-                w_zero = MotionModel_class.zeroNoise;
-                v_zero = ObservationModel_class.zeroNoise;
+                w_zero = system_inp.mm.zeroNoise;
+                v_zero = system_inp.om.zeroNoise;
                 
                 % memory preallocation
                 obj.lnr_sys = Linear_system_class.empty;
@@ -38,7 +40,7 @@ classdef Finite_time_LQG_class < LQG_interface
                     obj.lnr_pts(k).u = u_p(:,k);
                     obj.lnr_pts(k).w = w_zero;
                     obj.lnr_pts(k).v = v_zero;
-                    obj.lnr_sys(k) = Linear_system_class(obj.lnr_pts(k));
+                    obj.lnr_sys(k) = Linear_system_class(system_inp, obj.lnr_pts(k));
                 end
                  
                 if strcmpi(obj.filter_mode, 'LKF')
@@ -64,8 +66,8 @@ classdef Finite_time_LQG_class < LQG_interface
             % valid linearization region of LQG. It is 0, otherwise.
             
             if exist('noise_mode','var') && strcmpi(noise_mode,'No-noise')
-                w = MotionModel_class.zeroNoise;
-                Vg = ObservationModel_class.zeroNoise;
+                w = obj.system.mm.zeroNoise;
+                Vg = obj.system.om.zeroNoise;
             end
             
             Xg = old_Hstate.Xg;
@@ -77,28 +79,30 @@ classdef Finite_time_LQG_class < LQG_interface
             
             % generating process noises
             if ~exist('noise_mode','var')
-                w = MotionModel_class.generate_process_noise(Xg.val,u);
+                w = obj.system.mm.generate_process_noise(Xg.val,u);
             end
             
             % True state propagation
-            next_Xg_val = MotionModel_class.f_discrete(Xg.val,u,w);
+            next_Xg_val = obj.system.mm.f_discrete(Xg.val,u,w);
             % generating observation noise
             if ~exist('noise_mode','var')
-                Vg = ObservationModel_class.generate_observation_noise(next_Xg_val);
+                Vg = obj.system.om.generate_observation_noise(next_Xg_val);
             end
             
             % constructing ground truth observation
-            Zg = ObservationModel_class.h_func(next_Xg_val,Vg);
+            Zg = obj.system.om.h_func(next_Xg_val,Vg);
             
             if strcmpi(obj.filter_mode,'LKF')
-                b_next = obj.estimator.estimate(b, u, Zg, obj.lnr_sys(k), obj.lnr_sys(k+1));
+                b_next = obj.estimator.estimate(b, u, Zg, obj.lnr_sys(k), obj.lnr_sys(k+1), obj.system);
             elseif strcmpi(obj.filter_mode,'EKF')
-                b_next = obj.estimator.estimate(b, u, Zg);
+                b_next = obj.estimator.estimate(b, u, Zg, obj.system);
             else
                 error(['FiniteTime LQG does not support ', obj.filter_mode, ' as a filter'])
             end
             
-            next_Hstate = Hstate(state(next_Xg_val),b_next);
+            next_Xg_val_state = feval(class(obj.system.ss),next_Xg_val);
+            
+            next_Hstate = Hstate(next_Xg_val_state, b_next);
         end
         function [nextBelief, reliable,sim] = executeOneStep(obj,oldBelief,k,sim,noiseFlag)
             % propagates the system and belief using Linearized/Extended Kalman Filter and
@@ -118,14 +122,12 @@ classdef Finite_time_LQG_class < LQG_interface
             
             % Estimation procedure
              if strcmpi(obj.filter_mode,'LKF')
-                nextBelief = obj.estimator.estimate(oldBelief, u, z, obj.lnr_sys(k), obj.lnr_sys(k+1));
+                nextBelief = obj.estimator.estimate(oldBelief, u, z, obj.lnr_sys(k), obj.lnr_sys(k+1), obj.system);
             elseif strcmpi(obj.filter_mode,'EKF')
-                nextBelief = obj.estimator.estimate(oldBelief, u, z);
+                nextBelief = obj.estimator.estimate(oldBelief, u, z, obj.system);
             else
                 error(['FiniteTime LQG does not support ', obj.filter_mode, ' as a filter'])
              end
-            
-             ali = 11;
              
         end
         
@@ -163,8 +165,8 @@ classdef Finite_time_LQG_class < LQG_interface
             xp_bar_curr = [obj.lnr_pts(k).x;obj.lnr_pts(k).x];
             xp_bar_next = [obj.lnr_pts(k+1).x;obj.lnr_pts(k+1).x];
             
-            stDim = MotionModel_class.stDim;
-            vDim = ObservationModel_class.obsNoiseDim;
+            stDim = obj.system.mm.stDim;
+            vDim = obj.system.om.obsNoiseDim;
             A_curr = obj.lnr_sys(k).A; % "curr" or "current" means "at time k"
             B_curr = obj.lnr_sys(k).B; % "curr" or "current" means "at time k"
             G_curr = obj.lnr_sys(k).G;
@@ -182,11 +184,12 @@ classdef Finite_time_LQG_class < LQG_interface
             BigQ = blkdiag(Q_curr,R_next);
                 
             BigX_next = xp_bar_next + BigF*(BigX_curr - xp_bar_curr); % the "curr" and "next" subscripts are extremely important here. If you do not pay attention, you may make a mistake, which is sometime very hard to find out.
-            XgMean_next = state(BigX_next(1:stDim));
-            Xest_mean_of_mean_next = state(BigX_next(stDim+1:2*stDim));
+            
+            XgMean_next = feval(class(obj.system.ss) , BigX_next(1:stDim));
+            Xest_mean_of_mean_next = feval(class(obj.system.ss) , BigX_next(stDim+1:2*stDim));
             BigCov_next = BigF*BigCov_curr*BigF' + BigG*BigQ*BigG';
 
-            next_Hb_Gaussian = Hbelief_G(XgMean_next, Xest_mean_of_mean_next, Pest_next, BigCov_next);
+            next_Hb_Gaussian = Hbelief_G(XgMean_next, Xest_mean_of_mean_next, Pest_next, BigCov_next, obj.system);
         end
         function obj = erase_from_memory(obj)
             obj.lnr_pts = [];

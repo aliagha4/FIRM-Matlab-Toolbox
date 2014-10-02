@@ -2,6 +2,7 @@ classdef Planning_Problem
     %PLANNING_PROBLEM is a base class, from which one can instantiate a planning problem with a user inputed environment (obstacles and information sources)
     
     properties
+        system;
         sim;
         PRM;
         FIRM_graph;
@@ -9,12 +10,13 @@ classdef Planning_Problem
     end
     
     methods
-        function obj = Planning_Problem(sim)
+        function obj = Planning_Problem(sim_inp, system_inp)
             % in constructor we retrive the paraemters of the planning
             % problem entered by the user.
             obj.par = user_data_class.par.planning_problem_param;
-            obj.sim = sim;
-            obj.PRM = PRM_class;
+            obj.sim = sim_inp;
+            obj.PRM = feval(obj.par.PRMString, system_inp.ss, system_inp.mm);
+            obj.system = system_inp;
         end
         function obj = solve(obj)
             [loading_folder_path, ~, ~] = fileparts(user_data_class.par.LoadFileName); % This line returns the path of the folder from which we want to load the parameters.
@@ -24,9 +26,9 @@ classdef Planning_Problem
             if obj.par.Offline_construction_phase == 1  % Offline construction code
                 
                 if strcmpi(obj.par.solver,'Periodic LQG-based FIRM')
-                    obj.FIRM_graph = PLQG_based_FIRM_graph_class(obj.PRM); % the input PRM is an object of PNPRM class
+                    obj.FIRM_graph = PLQG_based_FIRM_graph_class(obj.system, obj.PRM); % the input PRM is an object of PNPRM class
                 else 
-                    obj.FIRM_graph = FIRM_graph_class(obj.PRM); % the input PRM is an object of PNPRM class
+                    obj.FIRM_graph = FIRM_graph_class(obj.system, obj.PRM); % the input PRM is an object of PNPRM class
                 end                
                 obj.FIRM_graph = obj.FIRM_graph.construct_all_stabilizers_and_FIRM_nodes(); % Here, we construct the set of stabilizers used in FIRM and then we construct the reachable nodes under those stabilizers.
                 obj.FIRM_graph = obj.FIRM_graph.draw_all_nodes(); drawnow; % Draw the FIRM nodes
@@ -67,11 +69,9 @@ classdef Planning_Problem
 %                     text(obj.FIRM_graph.PRM.nodes(goal_node_ind).val(1)+5,obj.FIRM_graph.PRM.nodes(goal_node_ind).val(2),obj.FIRM_graph.PRM.nodes(goal_node_ind).val(3)+text_height,'goal','color','r','fontsize',14); % we write "goal" next to the goal node
                     
                     obj.FIRM_graph = obj.FIRM_graph.DP_compute_cost_to_go_values(goal_node_ind);
-                    %                 obj.FIRM_graph.feedback_pi(1)=2;
-                    %                 obj.FIRM_graph.feedback_pi(5)=12;
-                    %                 obj.FIRM_graph.feedback_pi(8)=17;
-                    %                 obj.FIRM_graph.feedback_pi(1)=4;
-                    %
+
+                    obj.FIRM_graph = obj.FIRM_graph.draw_cost_to_go();
+                    
                     ensemble_size = 1;  % The execution phase only works for a single robot. If you need multiple realization, you have to re-run it multiple times.
                     tmp_pHb = obj.FIRM_graph.Nodes(start_node_ind).sample(ensemble_size); % the "sample" function returns a particle-Hb, with a single particle (since "ensemble_size" is 1).
                     initial_belief = tmp_pHb.Hparticles(1).b; % initialization % we retrive the single Hstate (or Hparticle) from the "tmp_pHb"

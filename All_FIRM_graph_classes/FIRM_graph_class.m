@@ -6,8 +6,8 @@ classdef FIRM_graph_class < FIRM_graph_interface
     end
     
     methods
-        function obj = FIRM_graph_class(PRM_inp)
-            obj = obj@FIRM_graph_interface(PRM_inp);
+        function obj = FIRM_graph_class(system_inp,PRM_inp)
+            obj = obj@FIRM_graph_interface(system_inp,PRM_inp);
             obj.num_stabilizers = obj.PRM.num_stabilizers;
             obj.num_edges = size(PRM_inp.edges_list,1); % number of local controllers
             
@@ -19,7 +19,7 @@ classdef FIRM_graph_class < FIRM_graph_interface
             obj.Edges = FIRM_edge_class.empty;
             obj.Edges(obj.num_edges,1) = FIRM_edge_class; % Preallocate object array
         end
-        function obj = construct_all_stabilizers_and_FIRM_nodes(obj, team)
+        function obj = construct_all_stabilizers_and_FIRM_nodes(obj)
             % This function constructs stabilizers used in the FIRM framework and constructs reachable nodes under this stabilizers and assigns values to the "stabilizers" and "nodes" properties of the class.
             obj.num_nodes = obj.PRM.num_nodes;
             tic
@@ -28,12 +28,12 @@ classdef FIRM_graph_class < FIRM_graph_interface
                 disp(['Constructing belief node stabilizer ',num2str(jn),' out of total ',num2str(obj.num_stabilizers),' stabilizers'])
                 PRM_node = obj.PRM.nodes(jn);
 %                 obj.Stabilizers(jn) = stabilizer_class(PRM_node);  % constructing i-th stabilizer
-                obj.Stabilizers(jn) = feval(user_data_class.par.planning_problem_param.stabilizerString, PRM_node, class(team.ss), team.mm, team.om);
+                obj.Stabilizers(jn) = feval(user_data_class.par.planning_problem_param.stabilizerString, PRM_node, obj.system);
                 obj.Stabilizers(jn).stabilizer_number = jn;  % We need this for display purposes in the "stabilizer_class". However, we do not provide it as a constructor input, since it is not a real property of the class.
             end
             n = 0; % n represents the absolute number of nodes (Not associated with a single stabilizer, but among all nodes)
             for jn = 1:obj.num_stabilizers % jn is the stabilizer number (or belief node center number in this class)
-                obj.Stabilizers(jn) = obj.Stabilizers(jn).construct_reachable_FIRM_nodes(class(team.belief));
+                obj.Stabilizers(jn) = obj.Stabilizers(jn).construct_reachable_FIRM_nodes();
                 reachable_FIRM_nodes = obj.Stabilizers(jn).reachable_FIRM_nodes;
                 num_of_reachable_nodes = length(reachable_FIRM_nodes);
                 disp(['Constructing FIRM nodes ',num2str(n+1:n+num_of_reachable_nodes),' out of total ',num2str(obj.num_nodes),' nodes'])
@@ -74,7 +74,7 @@ classdef FIRM_graph_class < FIRM_graph_interface
                 end_edge_stabilizer = obj.Stabilizers(end_node_ind);
                 edge_ind = i;
                 
-                obj.Edges(i) = FIRM_edge_class(starting_FIRM_node , possible_end_node_indices , end_edge_stabilizer , edge_ind , PRM_edge_traj );
+                obj.Edges(i) = FIRM_edge_class(obj.system, starting_FIRM_node , possible_end_node_indices , end_edge_stabilizer , edge_ind , PRM_edge_traj );
                 obj.Edges(i) = obj.Edges(i).construct();
                 obj.Nodes(start_node_ind).outgoing_edges = [obj.Nodes(start_node_ind).outgoing_edges , edge_ind];
                 obj.time_of_edge_construction(i) = toc;

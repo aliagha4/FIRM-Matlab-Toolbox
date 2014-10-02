@@ -13,7 +13,7 @@ end
 
 
 n_agents = user_data.par.state_parameters.num_robots;
-state_agents = {'multi_robot_positional_state','multi_robot_positional_state','multi_robot_positional_state'}
+state_agents = {'multi_robot_positional_state','multi_robot_positional_state','multi_robot_positional_state'};
 mm_agents = {'RandomWalk', 'RandomWalk', 'RandomWalk'};
 om_agents = {'Full_state_additive_Gaussian', 'Full_state_additive_Gaussian', 'Full_state_additive_Gaussian'};
 belief_agents = {'multi_robot_positional_belief', 'multi_robot_positional_belief', 'multi_robot_positional_belief'};
@@ -23,7 +23,7 @@ mm_team = 'RandomWalk';
 om_team = 'Full_state_additive_Gaussian';
 belief_team = 'multi_robot_positional_belief';
 
-simulator_team = 'EmbeddedSimulator';
+simulator_team = 'EmbeddedSimulator_Decentralized';
 
 team = team_class(n_agents, state_agents, mm_agents, om_agents, belief_agents, state_team, mm_team, om_team, belief_team);
 

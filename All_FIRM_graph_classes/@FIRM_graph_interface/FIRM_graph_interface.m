@@ -2,6 +2,7 @@ classdef FIRM_graph_interface
     %FIRM_interface is the base class, from which different variants of the FIRM frameworks is derived.
     
     properties
+        system;
         PRM; % underlying PRM graph
         Stabilizers; % stabilizers in the FIRM framework.
         Nodes;  % FIRM nodes
@@ -15,7 +16,8 @@ classdef FIRM_graph_interface
     end
     
     methods
-        function obj = FIRM_graph_interface(PRM_inp)
+        function obj = FIRM_graph_interface(system_inp,PRM_inp)
+            obj.system = system_inp;
             % constructor of the FIRM interface
             obj.PRM = PRM_inp;
             obj.num_nodes = PRM_inp.num_nodes;
