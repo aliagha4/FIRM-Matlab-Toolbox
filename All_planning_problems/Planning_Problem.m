@@ -70,7 +70,7 @@ classdef Planning_Problem
                     
                     obj.FIRM_graph = obj.FIRM_graph.DP_compute_cost_to_go_values(goal_node_ind);
 
-                    obj.FIRM_graph = obj.FIRM_graph.draw_cost_to_go();
+                    %obj.FIRM_graph = obj.FIRM_graph.draw_cost_to_go();
                     
                     ensemble_size = 1;  % The execution phase only works for a single robot. If you need multiple realization, you have to re-run it multiple times.
                     tmp_pHb = obj.FIRM_graph.Nodes(start_node_ind).sample(ensemble_size); % the "sample" function returns a particle-Hb, with a single particle (since "ensemble_size" is 1).
